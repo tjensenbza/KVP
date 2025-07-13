@@ -45,6 +45,8 @@
       padding: 10px;
       margin-bottom: 10px;
       position: relative;
+      display: flex;
+      flex-direction: column;
     }
     .card input, .card textarea {
       width: 100%;
@@ -60,9 +62,8 @@
       padding: 4px 8px;
       cursor: pointer;
       font-size: 0.8em;
-      position: absolute;
-      top: 4px;
-      right: 4px;
+      margin-top: 8px;
+      width: 100%;
     }
     .add-card-btn {
       margin-top: auto;
@@ -126,13 +127,13 @@
       div.className = "card";
       div.dataset.id = c.id;
       div.innerHTML = `
-        <button class="delete-btn" onclick="confirmDelete(${c.id})">Löschen</button>
         <input type="text" placeholder="Titel" value="${c.title || ''}" />
         <textarea placeholder="Kommentar">${c.comment || ''}</textarea>
         <input type="text" placeholder="Verantwortlich" value="${c.assigned_to || ''}" />
         <input type="text" placeholder="Erstellungsdatum" value="${c.created_at || ''}" />
         <input type="text" placeholder="Status" value="${c.status || ''}" />
         <input type="number" placeholder="Betrag" value="${c.amount || ''}" />
+        <button class="delete-btn" onclick="confirmDelete(${c.id})">Löschen</button>
       `;
       div.onchange = () => saveCard(div);
       return div;
@@ -167,7 +168,7 @@
     async function saveCard(div) {
       const id = div.dataset.id;
       const inputs = div.querySelectorAll("input, textarea");
-      const [title, comment, assigned_to, created_at, status, amount] = [...inputs].slice(1).map(i => i.value);
+      const [title, comment, assigned_to, created_at, status, amount] = [...inputs].map(i => i.value);
       await supabase
         .from('pdca_cards')
         .update({ title, comment, assigned_to, created_at, status, amount: parseFloat(amount) || null })
