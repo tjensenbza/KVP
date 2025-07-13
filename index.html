@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDCA-Board</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #1e3a8a;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 20px;
+      height: 90vh;
+    }
+    .column {
+      background: #ffffff;
+      border: 2px solid #1e40af;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+    .column h2 {
+      text-align: center;
+      margin: 0 0 10px 0;
+      font-size: 1.2em;
+      color: #1e3a8a;
+    }
+    .card {
+      background-color: #f9fafb;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .card input, .card textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .add-card-btn {
+      margin-top: auto;
+      background-color: #1d4ed8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDCA-Board</h1>
+  <div class="board">
+    <div class="column" id="PLAN"><h2>PLAN</h2></div>
+    <div class="column" id="DO"><h2>DO</h2></div>
+    <div class="column" id="ACT"><h2>ACT</h2></div>
+    <div class="column" id="CHECK"><h2>CHECK</h2></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const SUPABASE_URL = "https://fdsedmqvonfsegyfvqwq.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const columns = ['PLAN', 'DO', 'CHECK', 'ACT'];
+
+    async function fetchCards() {
+      const { data } = await supabase
+        .from('pdca_cards')
+        .select('*')
+        .order('position', { ascending: true });
+      return data;
+    }
+
+    async function renderBoard() {
+      const cards = await fetchCards();
+      columns.forEach(col => {
+        const columnDiv = document.getElementById(col);
+        columnDiv.innerHTML = `<h2></h2>`;
+        const colCards = cards.filter(c => c.column === col);
+        colCards.forEach(c => {
+          const card = createCardElement(c);
+          columnDiv.appendChild(card);
+        });
+        const btn = document.createElement("button");
+        btn.textContent = "+ Karte";
+        btn.className = "add-card-btn";
+        btn.onclick = () => addCard(col);
+        columnDiv.appendChild(btn);
+      });
+      initSortable();
+    }
+
+    function createCardElement(c) {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.dataset.id = c.id;
+      div.innerHTML = `
+        <input type="text" placeholder="Titel" value="" />
+        <textarea placeholder="Kommentar"></textarea>
+        <input type="text" placeholder="Verantwortlich" value="" />
+        <input type="text" placeholder="Erstellungsdatum" value="" />
+        <input type="text" placeholder="Status" value="" />
+        <input type="number" placeholder="Betrag" value="" />
+      `;
+      div.onchange = () => saveCard(div);
+      return div;
+    }
+
+    async function addCard(column) {
+      const { data, error } = await supabase
+        .from('pdca_cards')
+        .insert({
+          title: '',
+          comment: '',
+          assigned_to: '',
+          created_at: '',
+          status: '',
+          amount: null,
+          column: column,
+          position: 999
+        })
+        .select()
+        .single();
+      if (!error) renderBoard();
+    }
+
+    async function saveCard(div) {
+      const id = div.dataset.id;
+      const inputs = div.querySelectorAll("input, textarea");
+      const [title, comment, assigned_to, created_at, status, amount] = [...inputs].map(i => i.value);
+      await supabase
+        .from('pdca_cards')
+        .update({ title, comment, assigned_to, created_at, status, amount: parseFloat(amount) || null })
+        .eq('id', id);
+    }
+
+    function initSortable() {
+      columns.forEach(col => {
+        new Sortable(document.getElementById(col), {
+          group: 'shared',
+          animation: 150,
+          draggable: ".card",
+          onEnd: async (evt) => {
+            const card = evt.item;
+            const id = card.dataset.id;
+            const newColumn = evt.to.id;
+            const newIndex = evt.newIndex;
+            await supabase
+              .from('pdca_cards')
+              .update({ column: newColumn, position: newIndex })
+              .eq('id', id);
+            renderBoard();
+          }
+        });
+      });
+    }
+
+    renderBoard();
+  </script>
+</body>
+</html>
