@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>PDCA-Board</title>
+  <title>PDCA-Board mit KVP-Karten</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
@@ -44,12 +44,25 @@
       border-radius: 6px;
       padding: 10px;
       margin-bottom: 10px;
+      position: relative;
     }
     .card input, .card textarea {
       width: 100%;
       box-sizing: border-box;
       margin-top: 4px;
       margin-bottom: 4px;
+    }
+    .delete-btn {
+      background-color: #e11d48;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.8em;
+      position: absolute;
+      top: 4px;
+      right: 4px;
     }
     .add-card-btn {
       margin-top: auto;
@@ -63,7 +76,7 @@
   </style>
 </head>
 <body>
-  <h1>PDCA-Board</h1>
+  <h1>PDCA-Board mit KVP-Karten</h1>
   <div class="board">
     <div class="column" id="PLAN"><h2>PLAN</h2></div>
     <div class="column" id="DO"><h2>DO</h2></div>
@@ -93,7 +106,7 @@
       const cards = await fetchCards();
       columns.forEach(col => {
         const columnDiv = document.getElementById(col);
-        columnDiv.innerHTML = `<h2></h2>`;
+        columnDiv.innerHTML = `<h2>${col}</h2>`;
         const colCards = cards.filter(c => c.column === col);
         colCards.forEach(c => {
           const card = createCardElement(c);
@@ -113,12 +126,13 @@
       div.className = "card";
       div.dataset.id = c.id;
       div.innerHTML = `
-        <input type="text" placeholder="Titel" value="" />
-        <textarea placeholder="Kommentar"></textarea>
-        <input type="text" placeholder="Verantwortlich" value="" />
-        <input type="text" placeholder="Erstellungsdatum" value="" />
-        <input type="text" placeholder="Status" value="" />
-        <input type="number" placeholder="Betrag" value="" />
+        <button class="delete-btn" onclick="confirmDelete(${c.id})">Löschen</button>
+        <input type="text" placeholder="Titel" value="${c.title || ''}" />
+        <textarea placeholder="Kommentar">${c.comment || ''}</textarea>
+        <input type="text" placeholder="Verantwortlich" value="${c.assigned_to || ''}" />
+        <input type="text" placeholder="Erstellungsdatum" value="${c.created_at || ''}" />
+        <input type="text" placeholder="Status" value="${c.status || ''}" />
+        <input type="number" placeholder="Betrag" value="${c.amount || ''}" />
       `;
       div.onchange = () => saveCard(div);
       return div;
@@ -142,10 +156,18 @@
       if (!error) renderBoard();
     }
 
+    window.confirmDelete = async function(id) {
+      const ok = confirm("Möchtest du diese Karte wirklich löschen?");
+      if (ok) {
+        await supabase.from('pdca_cards').delete().eq('id', id);
+        renderBoard();
+      }
+    }
+
     async function saveCard(div) {
       const id = div.dataset.id;
       const inputs = div.querySelectorAll("input, textarea");
-      const [title, comment, assigned_to, created_at, status, amount] = [...inputs].map(i => i.value);
+      const [title, comment, assigned_to, created_at, status, amount] = [...inputs].slice(1).map(i => i.value);
       await supabase
         .from('pdca_cards')
         .update({ title, comment, assigned_to, created_at, status, amount: parseFloat(amount) || null })
