@@ -132,7 +132,7 @@
         <input type="text" placeholder="Verantwortlich" value="${c.assigned_to || ''}" />
         <input type="text" placeholder="Erstellungsdatum" value="${c.created_at || ''}" />
         <input type="text" placeholder="Status" value="${c.status || ''}" />
-        <input type="number" placeholder="Betrag" value="${c.amount || ''}" />
+        <input type="text" placeholder="Erstellt von:" value="${c.amount || ''}" />
         <button class="delete-btn" onclick="confirmDelete(${c.id})">Löschen</button>
       `;
       div.onchange = () => saveCard(div);
@@ -148,7 +148,7 @@
           assigned_to: '',
           created_at: '',
           status: '',
-          amount: null,
+          amount: '',
           column: column,
           position: 999
         })
@@ -171,7 +171,7 @@
       const [title, comment, assigned_to, created_at, status, amount] = [...inputs].map(i => i.value);
       await supabase
         .from('pdca_cards')
-        .update({ title, comment, assigned_to, created_at, status, amount: parseFloat(amount) || null })
+        .update({ title, comment, assigned_to, created_at, status, amount })
         .eq('id', id);
     }
 
