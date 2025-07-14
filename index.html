@@ -66,7 +66,7 @@
       width: 100%;
     }
     .add-card-btn {
-      margin-top: auto;
+      margin-top: 10px;
       background-color: #1d4ed8;
       color: white;
       border: none;
@@ -113,13 +113,18 @@
           const card = createCardElement(c);
           columnDiv.appendChild(card);
         });
-        const btn = document.createElement("button");
-        btn.textContent = "+ Karte";
-        btn.className = "add-card-btn";
-        btn.onclick = () => addCard(col);
-        columnDiv.appendChild(btn);
       });
+      addAddCardButton();
       initSortable();
+    }
+
+    function addAddCardButton() {
+      const planColumn = document.getElementById("PLAN");
+      const btn = document.createElement("button");
+      btn.textContent = "+ Karte";
+      btn.className = "add-card-btn";
+      btn.onclick = () => addCard("PLAN");
+      planColumn.appendChild(btn);
     }
 
     function createCardElement(c) {
