@@ -3,103 +3,125 @@
 <head>
   <meta charset="UTF-8" />
   <title>PDCA-Board mit KVP-Karten</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f0f4f8;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #1e3a8a;
-    }
-    .board {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 20px;
-      height: 90vh;
-    }
-    .column {
-      background: #ffffff;
-      border: 2px solid #1e40af;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-    }
-    .column h2 {
-      text-align: center;
-      margin: 0 0 10px 0;
-      font-size: 1.2em;
-      color: #1e3a8a;
-    }
-    .card {
-      background-color: #f9fafb;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 10px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-    .card input, .card textarea {
-      width: 100%;
-      box-sizing: border-box;
-      margin-top: 4px;
-      margin-bottom: 4px;
-    }
-    .delete-btn {
-      background-color: #e11d48;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      cursor: pointer;
-      font-size: 0.8em;
-      margin-top: 8px;
-      width: 100%;
-    }
-    .add-card-btn {
-      margin-top: 10px;
-      background-color: #1d4ed8;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 8px;
-      cursor: pointer;
-    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; }
+    h1 { text-align: center; color: #1e3a8a; margin-top: 0; }
+    .board { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 80vh; }
+    .column { background: #ffffff; border: 2px solid #1e40af; border-radius: 8px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; overflow: auto; }
+    .column h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.2em; color: #1e3a8a; }
+    .card { background-color: #f9fafb; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; display: flex; flex-direction: column; }
+    .card input, .card textarea { width: 100%; box-sizing: border-box; margin-top: 4px; margin-bottom: 4px; }
+    .delete-btn { background-color: #e11d48; color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 0.85em; margin-top: 8px; align-self: flex-end; }
+    .add-card-btn { margin-top: 10px; background-color: #1d4ed8; color: white; border: none; border-radius: 6px; padding: 10px 12px; cursor: pointer; }
+
+    /* Auth UI */
+    #auth-section { display: block; max-width: 360px; margin: 24px auto; background: #fff; border: 1px solid #93c5fd; border-radius: 10px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,.05); }
+    #auth-section h2 { margin-top: 0; color: #1e3a8a; }
+    .field { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px; }
+    .primary-btn { background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+    .hint { font-size: .9em; color: #475569; margin-top: 6px; }
+    .hint.error { color: #b91c1c; }
+
+    /* App Rahmen */
+    #app { display: none; }
+    .toolbar { max-width: 1080px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: space-between; }
+    .logout { background: transparent; border: none; color: #1e3a8a; cursor: pointer; text-decoration: underline; }
   </style>
 </head>
 <body>
   <h1>PDCA-Board mit KVP-Karten</h1>
-  <div class="board">
-    <div class="column" id="PLAN"><h2>PLAN</h2></div>
-    <div class="column" id="DO"><h2>DO</h2></div>
-    <div class="column" id="ACT"><h2>ACT</h2></div>
-    <div class="column" id="CHECK"><h2>CHECK</h2></div>
-  </div>
+
+  <!-- Login (nur Passwort, E-Mail ist fest vorgegeben) -->
+  <section id="auth-section">
+    <form id="login-form">
+      <h2>Anmeldung</h2>
+      <input type="password" id="password" class="field" placeholder="Passwort" required />
+      <button class="primary-btn" type="submit">Anmelden</button>
+      <div class="hint">Zugriff nur für <strong>semcobza@gmail.com</strong>.</div>
+    </form>
+  </section>
+
+  <!-- App-Bereich (sichtbar erst nach Login) -->
+  <section id="app">
+    <div class="toolbar">
+      <div class="hint">Angemeldet als <strong id="user-email"></strong></div>
+      <button id="logout-btn" class="logout">Logout</button>
+    </div>
+    <div class="board">
+      <div class="column" id="PLAN"><h2>PLAN</h2></div>
+      <div class="column" id="DO"><h2>DO</h2></div>
+      <div class="column" id="ACT"><h2>ACT</h2></div>
+      <div class="column" id="CHECK"><h2>CHECK</h2></div>
+    </div>
+  </section>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    // --- Supabase Setup ---
     const SUPABASE_URL = "https://fdsedmqvonfsegyfvqwq.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2VkbXF2b25mc2VneWZ2cXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDA3MTUsImV4cCI6MjA2NzAxNjcxNX0.85AKLlUGAtOsLm8Om6rx19ZpPBYF8kf3xrL6NiTPCME";
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const FIXED_EMAIL = "semcobza@gmail.com"; // Nur diese E-Mail ist erlaubt
 
+    // --- UI Helpers ---
+    function showLogin(msg){
+      document.getElementById('auth-section').style.display = 'block';
+      document.getElementById('app').style.display = 'none';
+      if (msg){
+        const form = document.getElementById('login-form');
+        let hint = form.querySelector('.hint.error');
+        if (!hint){ hint = document.createElement('div'); hint.className = 'hint error'; form.appendChild(hint); }
+        hint.textContent = msg;
+      }
+    }
+    function showApp(user){
+      document.getElementById('auth-section').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('user-email').textContent = user?.email || '';
+    }
+
+    // --- Auth Enforcement ---
+    async function enforceAuth(){
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session){ showLogin(); return; }
+      const user = session.user;
+      if (!user || user.email !== FIXED_EMAIL){
+        await supabase.auth.signOut();
+        showLogin('Kein Zugriff für dieses Konto.');
+        return;
+      }
+      showApp(user);
+      renderBoard();
+    }
+
+    // Login (nur Passwort, E-Mail fix)
+    document.getElementById('login-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const password = (document.getElementById('password').value||'').trim();
+      const { error } = await supabase.auth.signInWithPassword({ email: FIXED_EMAIL, password });
+      if (error){ showLogin('Login fehlgeschlagen: '+error.message); }
+      else { enforceAuth(); }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async ()=>{
+      await supabase.auth.signOut();
+      showLogin();
+    });
+
+    // --- PDCA Board Logik (unverändert, aber erst NACH Login aufrufbar) ---
     const columns = ['PLAN', 'DO', 'CHECK', 'ACT'];
 
     async function fetchCards() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('pdca_cards')
         .select('*')
         .order('position', { ascending: true });
+      if (error){ console.error(error.message); return []; }
       return data;
     }
 
@@ -109,27 +131,24 @@
         const columnDiv = document.getElementById(col);
         columnDiv.innerHTML = `<h2>${col}</h2>`;
         const colCards = cards.filter(c => c.column === col);
-        colCards.forEach(c => {
-          const card = createCardElement(c);
-          columnDiv.appendChild(card);
-        });
+        colCards.forEach(c => { columnDiv.appendChild(createCardElement(c)); });
       });
       addAddCardButton();
       initSortable();
     }
 
     function addAddCardButton() {
-      const planColumn = document.getElementById("PLAN");
-      const btn = document.createElement("button");
-      btn.textContent = "+ Karte";
-      btn.className = "add-card-btn";
-      btn.onclick = () => addCard("PLAN");
+      const planColumn = document.getElementById('PLAN');
+      const btn = document.createElement('button');
+      btn.textContent = '+ Karte';
+      btn.className = 'add-card-btn';
+      btn.onclick = () => addCard('PLAN');
       planColumn.appendChild(btn);
     }
 
     function createCardElement(c) {
-      const div = document.createElement("div");
-      div.className = "card";
+      const div = document.createElement('div');
+      div.className = 'card';
       div.dataset.id = c.id;
       div.innerHTML = `
         <input type="text" placeholder="Titel" value="${c.title || ''}" />
@@ -138,46 +157,41 @@
         <input type="text" placeholder="Erstellungsdatum" value="${c.created_at || ''}" />
         <input type="text" placeholder="Status" value="${c.status || ''}" />
         <input type="text" placeholder="Erstellt von:" value="${c.amount || ''}" />
-        <button class="delete-btn" onclick="confirmDelete(${c.id})">Löschen</button>
+        <button class="delete-btn" type="button">Löschen</button>
       `;
-      div.onchange = () => saveCard(div);
+      div.querySelector('.delete-btn').addEventListener('click', () => confirmDelete(c.id));
+      div.addEventListener('change', () => saveCard(div));
       return div;
     }
 
     async function addCard(column) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('pdca_cards')
         .insert({
-          title: '',
-          comment: '',
-          assigned_to: '',
-          created_at: '',
-          status: '',
-          amount: '',
-          column: column,
-          position: 999
-        })
-        .select()
-        .single();
-      if (!error) renderBoard();
+          title: '', comment: '', assigned_to: '', created_at: '', status: '', amount: '',
+          column, position: 999
+        });
+      if (error){ alert('Fehler beim Anlegen: '+error.message); }
+      renderBoard();
     }
 
-    window.confirmDelete = async function(id) {
-      const ok = confirm("Möchtest du diese Karte wirklich löschen?");
-      if (ok) {
-        await supabase.from('pdca_cards').delete().eq('id', id);
-        renderBoard();
-      }
+    async function confirmDelete(id) {
+      const ok = confirm('Möchtest du diese Karte wirklich löschen?');
+      if (!ok) return;
+      const { error } = await supabase.from('pdca_cards').delete().eq('id', id);
+      if (error){ alert('Löschen nicht möglich: '+error.message); }
+      renderBoard();
     }
 
     async function saveCard(div) {
       const id = div.dataset.id;
-      const inputs = div.querySelectorAll("input, textarea");
+      const inputs = div.querySelectorAll('input, textarea');
       const [title, comment, assigned_to, created_at, status, amount] = [...inputs].map(i => i.value);
-      await supabase
+      const { error } = await supabase
         .from('pdca_cards')
         .update({ title, comment, assigned_to, created_at, status, amount })
         .eq('id', id);
+      if (error){ console.error(error.message); }
     }
 
     function initSortable() {
@@ -185,23 +199,28 @@
         new Sortable(document.getElementById(col), {
           group: 'shared',
           animation: 150,
-          draggable: ".card",
+          draggable: '.card',
           onEnd: async (evt) => {
             const card = evt.item;
             const id = card.dataset.id;
             const newColumn = evt.to.id;
             const newIndex = evt.newIndex;
-            await supabase
+            const { error } = await supabase
               .from('pdca_cards')
               .update({ column: newColumn, position: newIndex })
               .eq('id', id);
+            if (error){ console.error(error.message); }
             renderBoard();
           }
         });
       });
     }
 
-    renderBoard();
+    // Start: Ansicht nur nach erfolgreichem Login
+    enforceAuth();
+
+    // Session zyklisch prüfen (optional)
+    setInterval(enforceAuth, 10*60*1000);
   </script>
 </body>
 </html>
